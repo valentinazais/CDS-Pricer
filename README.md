@@ -3,16 +3,6 @@
 Live App: https://valentinazais.github.io/CDS-Pricer/
 
 ---
-
-## Overview
-
-Interactive Credit Default Swap (CDS) pricing simulator running entirely in the browser.
-
-The application implements a reduced‑form credit risk model based on constant hazard rates. It computes the present value of the premium leg, the protection leg, the upfront payment, the implied fair spread, and the survival probability term structure.
-
-All calculations are performed locally in JavaScript with no backend services or API calls.
-
----
 ## Model Formulas
 
 ### Hazard Rate
