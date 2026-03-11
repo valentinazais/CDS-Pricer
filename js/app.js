@@ -46,7 +46,7 @@
         // charts
         var ts   = CDS.termStructure(p.recoveryRate, p.riskFreeRate, p.spreadBps, p.freq);
         var surv = CDS.survivalCurve(p.spreadBps, p.recoveryRate, p.maturity);
-        var sens = CDS.recoverySensitivity(p.notional, p.riskFreeRate, p.maturity, p.freq);
+        var sens = CDS.recoverySensitivity(p.notional, p.spreadBps, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
 
         Charts.renderTermStructure('chart-term', ts);
         Charts.renderSurvivalCurve('chart-survival', surv);

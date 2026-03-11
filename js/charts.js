@@ -71,11 +71,20 @@ var Charts = (function () {
 
     /* ---- public renderers ---- */
 
+    function pad(values, pct) {
+        var mn = Math.min.apply(null, values);
+        var mx = Math.max.apply(null, values);
+        var range = mx - mn || mx * 0.1 || 1;
+        return { min: Math.floor(mn - range * pct), max: Math.ceil(mx + range * pct) };
+    }
+
     function renderTermStructure(canvasId, data) {
         var labels  = data.map(function (d) { return d.year + 'Y'; });
         var values  = data.map(function (d) { return d.spread; });
         var opts    = baseOpts('Term Structure (bps)');
-        opts.scales.y.beginAtZero = true;
+        var bounds  = pad(values, 0.15);
+        opts.scales.y.min = Math.max(0, bounds.min);
+        opts.scales.y.max = bounds.max;
 
         getOrCreate(canvasId, {
             type: 'bar',
@@ -97,8 +106,9 @@ var Charts = (function () {
         var labels = data.map(function (d) { return d.t; });
         var values = data.map(function (d) { return (d.prob * 100); });
         var opts   = baseOpts('Survival Probability (%)');
-        opts.scales.y.min = 0;
-        opts.scales.y.max = 105;
+        var bounds = pad(values, 0.15);
+        opts.scales.y.min = Math.max(0, bounds.min);
+        opts.scales.y.max = Math.min(101, bounds.max);
 
         getOrCreate(canvasId, {
             type: 'line',
@@ -122,7 +132,9 @@ var Charts = (function () {
         var labels = data.map(function (d) { return d.recovery + '%'; });
         var values = data.map(function (d) { return d.spread; });
         var opts   = baseOpts('Spread vs Recovery Rate (bps)');
-        opts.scales.y.beginAtZero = true;
+        var bounds = pad(values, 0.10);
+        opts.scales.y.min = Math.max(0, bounds.min);
+        opts.scales.y.max = bounds.max;
 
         getOrCreate(canvasId, {
             type: 'line',

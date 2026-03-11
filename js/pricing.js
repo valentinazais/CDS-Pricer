@@ -117,12 +117,31 @@ var CDS = (function () {
         return pts;
     }
 
-    function recoverySensitivity(notional, riskFreeRate, maturity, freq) {
+    function recoverySensitivity(notional, spreadBps, recoveryRate, riskFreeRate, maturity, freq) {
+        // fix the hazard rate from the user's inputs, then vary R
+        var hFixed = hazardRate(spreadBps, recoveryRate);
+        var n   = freqToN(freq);
+        var dt  = 1 / n;
         var result = [];
         for (var r = 10; r <= 80; r += 5) {
             var rec = r / 100;
-            var sp = fairSpread(notional, rec, riskFreeRate, maturity, freq);
-            result.push({ recovery: r, spread: sp });
+            // risky annuity with fixed h
+            var annuity = 0;
+            for (var i = 1; i <= maturity * n; i++) {
+                var t = i * dt;
+                annuity += dt * discount(riskFreeRate, t) * survivalProb(hFixed, t);
+            }
+            // protection PV with fixed h but varying recovery
+            var protPV = 0;
+            for (var i = 1; i <= maturity * n; i++) {
+                var t  = i * dt;
+                var t0 = (i - 1) * dt;
+                var dp = survivalProb(hFixed, t0) - survivalProb(hFixed, t);
+                protPV += discount(riskFreeRate, (t + t0) / 2) * dp;
+            }
+            protPV *= (1 - rec);
+            var fairS = (protPV / annuity) * 10000;
+            result.push({ recovery: r, spread: fairS });
         }
         return result;
     }
