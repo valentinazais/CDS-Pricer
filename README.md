@@ -13,6 +13,104 @@ The application implements a reduced‑form credit risk model based on constant 
 All calculations are performed locally in JavaScript with no backend services or API calls.
 
 ---
+## Model Formulas
+
+### Hazard Rate
+
+$$
+h = \frac{s}{1 - R}
+$$
+
+Where:
+
+- $s$ = CDS spread  
+- $R$ = recovery rate  
+
+---
+
+### Survival Probability
+
+$$
+P(t) = e^{-h t}
+$$
+
+Probability that the reference entity survives until time $t$.
+
+---
+
+### Premium Leg
+
+Expected discounted value of periodic premium payments:
+
+$$
+PV_{prem} =
+N \cdot s
+\sum_{i=1}^{n}
+\Delta t_i
+e^{-r t_i}
+P(t_i)
+$$
+
+Where:
+
+- $N$ = notional  
+- $s$ = CDS spread  
+- $r$ = risk‑free rate  
+- $\Delta t_i$ = payment interval  
+- $P(t_i)$ = survival probability  
+
+---
+
+### Protection Leg
+
+Expected discounted payoff in case of default:
+
+$$
+PV_{prot} =
+N (1 - R)
+\sum_{i=1}^{n}
+e^{-r \bar{t}_i}
+\left(
+P(t_{i-1}) - P(t_i)
+\right)
+$$
+
+Where midpoint discounting is:
+
+$$
+\bar{t}_i = \frac{t_i + t_{i-1}}{2}
+$$
+
+---
+
+### Upfront Payment
+
+$$
+Upfront = PV_{prot} - PV_{prem}
+$$
+
+Positive value means the protection buyer pays upfront.
+
+---
+
+### Fair CDS Spread
+
+$$
+s_{fair} =
+\frac{PV_{prot}}{\text{Risky Annuity}}
+$$
+
+Where the risky annuity is:
+
+$$
+RiskyAnnuity =
+\sum_{i=1}^{n}
+\Delta t_i
+e^{-r t_i}
+P(t_i)
+$$
+
+---
 
 ## Features
 
@@ -124,105 +222,6 @@ Displays fair CDS spreads for maturities from 1 to 10 years.
 **Recovery Sensitivity**
 
 Shows how fair spreads change when the recovery assumption varies.
-
----
-
-## Model Formulas
-
-### Hazard Rate
-
-$$
-h = \frac{s}{1 - R}
-$$
-
-Where:
-
-- $s$ = CDS spread  
-- $R$ = recovery rate  
-
----
-
-### Survival Probability
-
-$$
-P(t) = e^{-h t}
-$$
-
-Probability that the reference entity survives until time $t$.
-
----
-
-### Premium Leg
-
-Expected discounted value of periodic premium payments:
-
-$$
-PV_{prem} =
-N \cdot s
-\sum_{i=1}^{n}
-\Delta t_i
-e^{-r t_i}
-P(t_i)
-$$
-
-Where:
-
-- $N$ = notional  
-- $s$ = CDS spread  
-- $r$ = risk‑free rate  
-- $\Delta t_i$ = payment interval  
-- $P(t_i)$ = survival probability  
-
----
-
-### Protection Leg
-
-Expected discounted payoff in case of default:
-
-$$
-PV_{prot} =
-N (1 - R)
-\sum_{i=1}^{n}
-e^{-r \bar{t}_i}
-\left(
-P(t_{i-1}) - P(t_i)
-\right)
-$$
-
-Where midpoint discounting is:
-
-$$
-\bar{t}_i = \frac{t_i + t_{i-1}}{2}
-$$
-
----
-
-### Upfront Payment
-
-$$
-Upfront = PV_{prot} - PV_{prem}
-$$
-
-Positive value means the protection buyer pays upfront.
-
----
-
-### Fair CDS Spread
-
-$$
-s_{fair} =
-\frac{PV_{prot}}{\text{Risky Annuity}}
-$$
-
-Where the risky annuity is:
-
-$$
-RiskyAnnuity =
-\sum_{i=1}^{n}
-\Delta t_i
-e^{-r t_i}
-P(t_i)
-$$
 
 ---
 
