@@ -1,4 +1,3 @@
-```
 # CDS Pricer — Browser-Based Credit Derivatives Engine
 
 Live App: https://valentinazais.github.io/CDS-Pricer/
@@ -189,4 +188,3 @@ Resolution:
 ## Result
 
 A browser-based CDS pricing terminal for exploring credit risk mechanics, survival probabilities, and spread dynamics without requiring external services or installation.
-```
