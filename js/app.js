@@ -29,24 +29,26 @@
     function run() {
         var p = readInputs();
 
+        // calibrate hazard rate (Newton's method — exact discrete consistency)
+        var h = CDS.calibrateHazardRate(p.spreadBps, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
+
         // pricing
-        var h       = CDS.hazardRate(p.spreadBps, p.recoveryRate);
         var premPV  = CDS.premiumLegPV(p.notional, p.spreadBps, p.riskFreeRate, h, p.maturity, p.freq);
         var protPV  = CDS.protectionLegPV(p.notional, p.recoveryRate, p.riskFreeRate, h, p.maturity, p.freq);
         var upfront = CDS.upfrontPayment(premPV, protPV);
-        var fair    = CDS.fairSpread(p.notional, p.spreadBps, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
+        var fair    = CDS.fairSpread(h, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
 
         // results
         document.getElementById('res-fair-spread').textContent   = fmt(fair, 2) + ' bps';
-        document.getElementById('res-premium-pv').textContent    = fmt(premPV, 0);
-        document.getElementById('res-protection-pv').textContent = fmt(protPV, 0);
-        document.getElementById('res-upfront').textContent       = fmt(upfront, 0);
+        document.getElementById('res-premium-pv').textContent    = fmt(premPV, 2);
+        document.getElementById('res-protection-pv').textContent = fmt(protPV, 2);
+        document.getElementById('res-upfront').textContent       = fmt(upfront, 2);
         document.getElementById('res-hazard').textContent        = fmt(h * 100, 4) + ' %';
 
         // charts
         var ts   = CDS.termStructure(p.spreadBps, p.recoveryRate, p.riskFreeRate, p.freq);
-        var surv = CDS.survivalCurve(p.spreadBps, p.recoveryRate, p.maturity);
-        var sens = CDS.recoverySensitivity(p.notional, p.spreadBps, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
+        var surv = CDS.survivalCurve(h, p.maturity);
+        var sens = CDS.recoverySensitivity(p.spreadBps, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
 
         Charts.renderTermStructure('chart-term', ts);
         Charts.renderSurvivalCurve('chart-survival', surv);
