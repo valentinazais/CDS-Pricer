@@ -2,46 +2,55 @@
 
 Live App: https://valentinazais.github.io/CDS-Pricer/
 
+---
+
 ## Overview
 
-Interactive Credit Default Swap (CDS) pricing simulator running entirely in the browser.  
-Implements a simplified ISDA-style reduced-form credit model using hazard rates.  
-Computes premium leg present value, protection leg present value, fair spread, survival probabilities, and recovery sensitivity.
+Interactive Credit Default Swap (CDS) pricing simulator running entirely in the browser.
 
-All calculations execute client-side in JavaScript with no backend infrastructure.
+The application implements a reduced‑form credit risk model based on constant hazard rates. It computes the present value of the premium leg, the protection leg, the upfront payment, the implied fair spread, and the survival probability term structure.
+
+All calculations are performed locally in JavaScript with no backend services or API calls.
 
 ---
 
 ## Features
 
 ### Credit Parameters
-- Notional amount
-- CDS spread (bps)
-- Recovery rate (R)
-- Risk-free rate (r)
-- Maturity (T)
-- Payment frequency (Quarterly, Semi-Annual, Annual)
+
+- Notional
+- CDS Spread (bps)
+- Recovery Rate \(R\)
+- Risk‑Free Rate \(r\)
+- Maturity \(T\)
+- Payment Frequency (Quarterly, Semi‑Annual, Annual)
+
+---
 
 ### Pricing Outputs
-- Hazard Rate: h = s / (1 − R)
-- Survival Probability: P(t) = e^(−ht)
+
+- Hazard Rate
+- Survival Probability Curve
 - Premium Leg Present Value
 - Protection Leg Present Value
 - Upfront Payment
 - Fair CDS Spread
 
-### Charts
+---
+
+### Visualizations
 
 **Survival Curve**
-- Survival probability vs time
-- Derived from exponential hazard model
+
+Displays survival probability \(P(t)\) over time using the exponential hazard model.
 
 **Term Structure**
-- Fair CDS spreads across maturities (1–10 years)
+
+Fair CDS spreads for maturities from 1 to 10 years.
 
 **Recovery Sensitivity**
-- Fair spread as a function of recovery rate
-- Recovery range: 10%–80%
+
+Fair CDS spread as a function of recovery rate assumptions from 10% to 80%.
 
 ---
 
@@ -59,71 +68,87 @@ index.html
     │       - protection leg valuation
     │
     ├── app.js
-    │       UI logic and parameter updates
+    │       UI state management
+    │       parameter updates
+    │       pricing calls
     │
     └── Chart.js
             chart rendering
 ```
 
-System characteristics:
-- Pure client-side execution
-- No backend services
-- Instant recalculation on parameter updates
-- Static GitHub Pages deployment
+System properties:
+
+- Fully client-side
+- No server or API
+- Instant recalculation on parameter change
+- Deployable as a static GitHub Pages project
 
 ---
 
 ## Usage
 
-### Input Panel
-Set CDS contract parameters:
+### Input Parameters
+
+Set the CDS contract inputs:
 
 - Notional
-- Market spread (bps)
-- Recovery rate
-- Risk‑free rate
+- Market Spread (bps)
+- Recovery Rate
+- Risk‑Free Rate
 - Maturity
-- Payment frequency
+- Payment Frequency
 
-### Pricing Output
+---
+
+### Pricing Results
 
 The engine computes:
 
-- Premium Leg PV
-- Protection Leg PV
+- Premium Leg Present Value
+- Protection Leg Present Value
 - Upfront Payment
 - Fair Spread
+
+---
 
 ### Charts
 
 **Survival Curve**
-Displays survival probability over time.
+
+Shows the probability that the reference entity survives until time \(t\).
 
 **Term Structure**
-Shows fair CDS spreads for maturities from 1 to 10 years.
+
+Displays fair CDS spreads for maturities from 1 to 10 years.
 
 **Recovery Sensitivity**
-Displays how fair spreads change as recovery assumptions vary.
+
+Shows how fair spreads change when the recovery assumption varies.
 
 ---
 
-## Model Details
+## Model Formulas
 
 ### Hazard Rate
 
-h = s / (1 − R)
+\[
+h = \frac{s}{1 - R}
+\]
 
 Where:
-- s = CDS spread
-- R = recovery rate
+
+- \(s\) = CDS spread  
+- \(R\) = recovery rate  
 
 ---
 
 ### Survival Probability
 
-P(t) = exp(−h · t)
+\[
+P(t) = e^{-h t}
+\]
 
-Probability that the reference entity survives until time t.
+Probability that the reference entity survives until time \(t\).
 
 ---
 
@@ -131,42 +156,86 @@ Probability that the reference entity survives until time t.
 
 Expected discounted value of periodic premium payments:
 
-PV_prem = N · s · Σ [ Δt · e^(−r·t) · P(t) ]
+\[
+PV_{\text{prem}} =
+N \cdot s
+\sum_{i=1}^{n}
+\Delta t_i
+e^{-r t_i}
+P(t_i)
+\]
+
+Where:
+
+- \(N\) = notional  
+- \(s\) = CDS spread  
+- \(r\) = risk‑free rate  
+- \(\Delta t_i\) = payment interval  
+- \(P(t_i)\) = survival probability  
 
 ---
 
 ### Protection Leg
 
-Expected discounted payoff upon default:
+Expected discounted payoff in the event of default:
 
-PV_prot = N · (1 − R) · Σ [ e^(−r·t_mid) · ( P(t_{i−1}) − P(t_i) ) ]
+\[
+PV_{\text{prot}} =
+N (1 - R)
+\sum_{i=1}^{n}
+e^{-r \bar{t}_i}
+\left(
+P(t_{i-1}) - P(t_i)
+\right)
+\]
 
-Midpoint discounting is applied for default events within intervals.
+Where:
+
+\[
+\bar{t}_i = \frac{t_i + t_{i-1}}{2}
+\]
+
+Midpoint discounting approximates default timing within the interval.
 
 ---
 
 ### Upfront Payment
 
-Upfront = PV_prot − PV_prem
+\[
+\text{Upfront} = PV_{\text{prot}} - PV_{\text{prem}}
+\]
 
-Positive value indicates the protection buyer pays upfront.
-
----
-
-### Fair Spread
-
-Spread that equates premium and protection legs:
-
-s_fair = PV_prot / RiskyAnnuity
+A positive value indicates that the protection buyer pays an upfront amount.
 
 ---
 
-## Numerical Details
+### Fair CDS Spread
 
-- Continuous discounting: exp(−r·t)
-- Time discretization based on coupon frequency
-- Default probability approximated per interval
-- Risky annuity used to compute fair spreads
+Spread that equates the premium and protection legs:
+
+\[
+s_{\text{fair}} =
+\frac{PV_{\text{prot}}}{\text{Risky Annuity}}
+\]
+
+Where the risky annuity is:
+
+\[
+\text{Risky Annuity} =
+\sum_{i=1}^{n}
+\Delta t_i
+e^{-r t_i}
+P(t_i)
+\]
+
+---
+
+## Numerical Implementation
+
+- Continuous discounting \(e^{-rt}\)
+- Piecewise time discretization determined by coupon frequency
+- Default probabilities computed per payment interval
+- Risky annuity used to derive the fair CDS spread
 
 Resolution:
 
@@ -181,10 +250,10 @@ Resolution:
 - Vanilla JavaScript pricing engine
 - Chart.js for visualization
 - HTML/CSS interface
-- Static GitHub Pages deployment
+- Static deployment via GitHub Pages
 
 ---
 
 ## Result
 
-A browser-based CDS pricing terminal for exploring credit risk mechanics, survival probabilities, and spread dynamics without requiring external services or installation.
+A browser-based CDS pricing terminal for exploring credit risk mechanics, survival probabilities, and spread dynamics without requiring external infrastructure.
