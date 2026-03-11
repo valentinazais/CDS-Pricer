@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDS Pricer</title>
+    <meta name="description" content="Credit Default Swap pricer — spread, PV, survival curve, term structure">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- header -->
+<div class="header">
+    <h1>CDS Pricer</h1>
+    <span class="tag">credit default swap</span>
+</div>
+
+<!-- main -->
+<div class="main">
+
+    <!-- LEFT — inputs -->
+    <div class="panel-left">
+
+        <div class="section-title">Parameters</div>
+
+        <div class="field">
+            <label for="in-notional">Notional (USD)</label>
+            <input type="number" id="in-notional" value="10000000" step="1000000" placeholder="10,000,000">
+        </div>
+
+        <div class="field">
+            <label for="in-spread">CDS Spread (bps)</label>
+            <input type="number" id="in-spread" value="100" step="5" placeholder="100">
+        </div>
+
+        <div class="field">
+            <label for="in-recovery">Recovery Rate (%)</label>
+            <input type="number" id="in-recovery" value="40" step="5" min="0" max="100" placeholder="40">
+        </div>
+
+        <div class="field">
+            <label for="in-rate">Risk-Free Rate (%)</label>
+            <input type="number" id="in-rate" value="3" step="0.25" min="0" placeholder="3.00">
+        </div>
+
+        <div class="field">
+            <label for="in-maturity">Maturity</label>
+            <select id="in-maturity">
+                <option value="1">1Y</option>
+                <option value="2">2Y</option>
+                <option value="3">3Y</option>
+                <option value="5" selected>5Y</option>
+                <option value="7">7Y</option>
+                <option value="10">10Y</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="in-freq">Payment Frequency</label>
+            <select id="in-freq">
+                <option value="quarterly" selected>Quarterly</option>
+                <option value="semi-annual">Semi-Annual</option>
+                <option value="annual">Annual</option>
+            </select>
+        </div>
+
+        <button id="btn-price" class="btn-price">[ Price ]</button>
+
+        <div class="section-title">Results</div>
+
+        <div id="results-panel" class="results">
+            <div class="result-row">
+                <span class="label">Fair Spread</span>
+                <span class="value" id="res-fair-spread">—</span>
+            </div>
+            <div class="result-row">
+                <span class="label">Premium Leg PV</span>
+                <span class="value" id="res-premium-pv">—</span>
+            </div>
+            <div class="result-row">
+                <span class="label">Protection Leg PV</span>
+                <span class="value" id="res-protection-pv">—</span>
+            </div>
+            <div class="result-row">
+                <span class="label">Upfront Payment</span>
+                <span class="value" id="res-upfront">—</span>
+            </div>
+            <div class="result-row">
+                <span class="label">Hazard Rate</span>
+                <span class="value" id="res-hazard">—</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT — charts -->
+    <div class="panel-right">
+        <div class="chart-box">
+            <canvas id="chart-term"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="chart-survival"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="chart-recovery"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="js/pricing.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
