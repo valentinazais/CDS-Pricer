@@ -7,12 +7,17 @@
 
     var btn = document.getElementById('btn-price');
 
+    function safeFloat(id, fallback) {
+        var v = parseFloat(document.getElementById(id).value);
+        return isNaN(v) ? fallback : v;
+    }
+
     function readInputs() {
         return {
-            notional:     parseFloat(document.getElementById('in-notional').value)    || 10000000,
-            spreadBps:    parseFloat(document.getElementById('in-spread').value)       || 100,
-            recoveryRate: parseFloat(document.getElementById('in-recovery').value)     / 100 || 0.40,
-            riskFreeRate: parseFloat(document.getElementById('in-rate').value)         / 100 || 0.03,
+            notional:     safeFloat('in-notional', 10000000),
+            spreadBps:    safeFloat('in-spread', 100),
+            recoveryRate: safeFloat('in-recovery', 40) / 100,
+            riskFreeRate:  safeFloat('in-rate', 3)  / 100,
             maturity:     parseInt(document.getElementById('in-maturity').value, 10)   || 5,
             freq:         document.getElementById('in-freq').value                     || 'quarterly'
         };
