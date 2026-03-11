@@ -131,24 +131,24 @@ Shows how fair spreads change when the recovery assumption varies.
 
 ### Hazard Rate
 
-\[
+$$
 h = \frac{s}{1 - R}
-\]
+$$
 
 Where:
 
-- \(s\) = CDS spread  
-- \(R\) = recovery rate  
+- $s$ = CDS spread  
+- $R$ = recovery rate  
 
 ---
 
 ### Survival Probability
 
-\[
+$$
 P(t) = e^{-h t}
-\]
+$$
 
-Probability that the reference entity survives until time \(t\).
+Probability that the reference entity survives until time $t$.
 
 ---
 
@@ -156,77 +156,73 @@ Probability that the reference entity survives until time \(t\).
 
 Expected discounted value of periodic premium payments:
 
-\[
-PV_{\text{prem}} =
+$$
+PV_{prem} =
 N \cdot s
 \sum_{i=1}^{n}
 \Delta t_i
 e^{-r t_i}
 P(t_i)
-\]
+$$
 
 Where:
 
-- \(N\) = notional  
-- \(s\) = CDS spread  
-- \(r\) = risk‑free rate  
-- \(\Delta t_i\) = payment interval  
-- \(P(t_i)\) = survival probability  
+- $N$ = notional  
+- $s$ = CDS spread  
+- $r$ = risk‑free rate  
+- $\Delta t_i$ = payment interval  
+- $P(t_i)$ = survival probability  
 
 ---
 
 ### Protection Leg
 
-Expected discounted payoff in the event of default:
+Expected discounted payoff in case of default:
 
-\[
-PV_{\text{prot}} =
+$$
+PV_{prot} =
 N (1 - R)
 \sum_{i=1}^{n}
 e^{-r \bar{t}_i}
 \left(
 P(t_{i-1}) - P(t_i)
 \right)
-\]
+$$
 
-Where:
+Where midpoint discounting is:
 
-\[
+$$
 \bar{t}_i = \frac{t_i + t_{i-1}}{2}
-\]
-
-Midpoint discounting approximates default timing within the interval.
+$$
 
 ---
 
 ### Upfront Payment
 
-\[
-\text{Upfront} = PV_{\text{prot}} - PV_{\text{prem}}
-\]
+$$
+Upfront = PV_{prot} - PV_{prem}
+$$
 
-A positive value indicates that the protection buyer pays an upfront amount.
+Positive value means the protection buyer pays upfront.
 
 ---
 
 ### Fair CDS Spread
 
-Spread that equates the premium and protection legs:
-
-\[
-s_{\text{fair}} =
-\frac{PV_{\text{prot}}}{\text{Risky Annuity}}
-\]
+$$
+s_{fair} =
+\frac{PV_{prot}}{\text{Risky Annuity}}
+$$
 
 Where the risky annuity is:
 
-\[
-\text{Risky Annuity} =
+$$
+RiskyAnnuity =
 \sum_{i=1}^{n}
 \Delta t_i
 e^{-r t_i}
 P(t_i)
-\]
+$$
 
 ---
 
