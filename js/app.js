@@ -34,7 +34,7 @@
         var premPV  = CDS.premiumLegPV(p.notional, p.spreadBps, p.riskFreeRate, h, p.maturity, p.freq);
         var protPV  = CDS.protectionLegPV(p.notional, p.recoveryRate, p.riskFreeRate, h, p.maturity, p.freq);
         var upfront = CDS.upfrontPayment(premPV, protPV);
-        var fair    = CDS.fairSpread(p.notional, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
+        var fair    = CDS.fairSpread(p.notional, p.spreadBps, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
 
         // results
         document.getElementById('res-fair-spread').textContent   = fmt(fair, 2) + ' bps';
@@ -44,7 +44,7 @@
         document.getElementById('res-hazard').textContent        = fmt(h * 100, 4) + ' %';
 
         // charts
-        var ts   = CDS.termStructure(p.recoveryRate, p.riskFreeRate, p.spreadBps, p.freq);
+        var ts   = CDS.termStructure(p.spreadBps, p.recoveryRate, p.riskFreeRate, p.freq);
         var surv = CDS.survivalCurve(p.spreadBps, p.recoveryRate, p.maturity);
         var sens = CDS.recoverySensitivity(p.notional, p.spreadBps, p.recoveryRate, p.riskFreeRate, p.maturity, p.freq);
 
