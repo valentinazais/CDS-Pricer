@@ -2,7 +2,6 @@
 
 Live App: https://valentinazais.github.io/CDS-Pricer/
 
----
 ## Model Formulas
 
 ### Hazard Rate
