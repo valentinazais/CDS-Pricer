@@ -85,6 +85,12 @@ html, body {
     margin-bottom: 4px;
 }
 
+.field label .hint {
+    font-size: 10px;
+    color: #aaa;
+    font-weight: 400;
+}
+
 .field input,
 .field select {
     width: 100%;

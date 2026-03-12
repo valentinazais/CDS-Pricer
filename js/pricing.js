@@ -56,11 +56,15 @@ var CDS = (function () {
 
     /*
      * Calibrate hazard rate via Newton's method so that the discrete-model
-     * fair spread exactly equals the input spread. This removes the bias
+     * fair spread exactly equals the input market spread. This removes the bias
      * from using the continuous approximation h = s/(1-R) in discrete sums.
+     *
+     * marketSpreadBps: current quoted CDS spread in the market (used to infer h)
+     * The contractual spread (agreed at inception) is a separate input used only
+     * for the premium leg PV — see premiumLegPV().
      */
-    function calibrateHazardRate(spreadBps, recoveryRate, riskFreeRate, maturity, freq) {
-        var s = spreadBps / 10000;
+    function calibrateHazardRate(marketSpreadBps, recoveryRate, riskFreeRate, maturity, freq) {
+        var s = marketSpreadBps / 10000;
         var h = s / (1 - recoveryRate);  // initial guess (continuous approx)
 
         for (var iter = 0; iter < 30; iter++) {
@@ -80,8 +84,13 @@ var CDS = (function () {
 
     /* ---- public pricing functions ---- */
 
-    function premiumLegPV(notional, spreadBps, riskFreeRate, h, maturity, freq) {
-        var s = spreadBps / 10000;
+    /*
+     * premiumLegPV uses the *contractual* spread (the coupon fixed at trade inception),
+     * NOT the market spread. h is derived from the market spread via calibrateHazardRate.
+     * When contractualSpreadBps !== marketSpreadBps, the upfront payment is non-zero.
+     */
+    function premiumLegPV(notional, contractualSpreadBps, riskFreeRate, h, maturity, freq) {
+        var s = contractualSpreadBps / 10000;
         var L = legs(h, riskFreeRate, maturity, freq);
         return notional * s * L.annuity;
     }
