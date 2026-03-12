@@ -9,12 +9,14 @@ var Charts = (function () {
 
     var COLORS = {
         bar:      '#555555',
+        barPos:   '#333333',
+        barNeg:   '#aaaaaa',
         line1:    '#333333',
-        line2:    '#777777',
+        line2:    '#aaaaaa',
         grid:     '#eeeeee',
         tick:     '#999999',
         fill1:    'rgba(51,51,51,0.06)',
-        fill2:    'rgba(119,119,119,0.06)'
+        fill2:    'rgba(170,170,170,0.10)'
     };
 
     var FONT = {
@@ -22,13 +24,21 @@ var Charts = (function () {
         size:   10
     };
 
-    function baseOpts(titleText) {
+    function baseOpts(titleText, showLegend) {
         return {
             responsive: true,
             maintainAspectRatio: false,
             animation: { duration: 400 },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: !!showLegend,
+                    labels: {
+                        color: '#888888',
+                        font: FONT,
+                        boxWidth: 10,
+                        padding: 10
+                    }
+                },
                 title: {
                     display: true,
                     text: titleText,
@@ -69,22 +79,77 @@ var Charts = (function () {
         return instances[id];
     }
 
-    /* ---- public renderers ---- */
-
     function pad(values, pct) {
         var mn = Math.min.apply(null, values);
         var mx = Math.max.apply(null, values);
-        var range = mx - mn || mx * 0.1 || 1;
-        return { min: Math.floor(mn - range * pct), max: Math.ceil(mx + range * pct) };
+        var range = mx - mn || Math.abs(mx) * 0.1 || 1;
+        return { min: mn - range * pct, max: mx + range * pct };
     }
 
-    function renderTermStructure(canvasId, data) {
-        var labels  = data.map(function (d) { return d.year + 'Y'; });
-        var values  = data.map(function (d) { return d.spread; });
-        var opts    = baseOpts('Term Structure (bps)');
-        var bounds  = pad(values, 0.15);
-        opts.scales.y.min = Math.max(0, bounds.min);
+    /* ─── 1. Survival + Default Probability ─── */
+
+    function renderSurvivalCurve(canvasId, data) {
+        var labels  = data.map(function (d) { return d.t; });
+        var surv    = data.map(function (d) { return +(d.prob * 100).toFixed(3); });
+        var def     = data.map(function (d) { return +((1 - d.prob) * 100).toFixed(3); });
+        var opts    = baseOpts('Survival & Default Probability (%)', true);
+        opts.scales.y.min = 0;
+        opts.scales.y.max = 101;
+        opts.scales.x.title = {
+            display: true,
+            text: 'Time (years)',
+            color: '#999',
+            font: FONT
+        };
+
+        getOrCreate(canvasId, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Survival Q(t)',
+                        data: surv,
+                        borderColor: COLORS.line1,
+                        backgroundColor: COLORS.fill1,
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Cumul. Default PD(t)',
+                        data: def,
+                        borderColor: COLORS.line2,
+                        backgroundColor: COLORS.fill2,
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: true,
+                        tension: 0.3,
+                        borderDash: [4, 3]
+                    }
+                ]
+            },
+            options: opts
+        });
+    }
+
+    /* ─── 2. P&L Summary bar chart ─── */
+    // data: { mtm, upfront, annualCarry, carry1m }
+
+    function renderPnLSummary(canvasId, data) {
+        var labels = ['MTM', 'Upfront', 'Annual Carry', '1M Carry-Roll'];
+        var values = [data.mtm, data.upfront, data.annualCarry, data.carry1m];
+        var colors = values.map(function (v) { return v >= 0 ? COLORS.barPos : COLORS.barNeg; });
+        var opts   = baseOpts('P&L Summary ($)');
+        var bounds = pad(values, 0.20);
+        opts.scales.y.min = bounds.min;
         opts.scales.y.max = bounds.max;
+        opts.plugins.tooltip.callbacks = {
+            label: function (ctx) {
+                return ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+        };
 
         getOrCreate(canvasId, {
             type: 'bar',
@@ -92,49 +157,70 @@ var Charts = (function () {
                 labels: labels,
                 datasets: [{
                     data: values,
-                    backgroundColor: COLORS.bar,
-                    borderColor: COLORS.bar,
+                    backgroundColor: colors,
+                    borderColor: colors,
                     borderWidth: 1,
-                    barPercentage: 0.6
+                    barPercentage: 0.55
                 }]
             },
             options: opts
         });
     }
 
-    function renderSurvivalCurve(canvasId, data) {
-        var labels = data.map(function (d) { return d.t; });
-        var values = data.map(function (d) { return (d.prob * 100); });
-        var opts   = baseOpts('Survival Probability (%)');
-        var bounds = pad(values, 0.15);
-        opts.scales.y.min = Math.max(0, bounds.min);
-        opts.scales.y.max = Math.min(101, bounds.max);
+    /* ─── 3. CS01 (Dollar DV01 per bp) ─── */
+    // data: array of { tenor, cs01 }
+
+    function renderCS01(canvasId, data) {
+        var labels = data.map(function (d) { return d.tenor; });
+        var values = data.map(function (d) { return d.cs01; });
+        var colors = values.map(function (v) { return v >= 0 ? COLORS.barPos : COLORS.barNeg; });
+        var opts   = baseOpts('CS01 — Spread DV01 ($ per bp)');
+        var bounds = pad(values, 0.20);
+        opts.scales.y.min = bounds.min;
+        opts.scales.y.max = bounds.max;
+        opts.scales.x.title = {
+            display: true, text: 'Tenor', color: '#999', font: FONT
+        };
+        opts.plugins.tooltip.callbacks = {
+            label: function (ctx) {
+                return ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+        };
 
         getOrCreate(canvasId, {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
                     data: values,
-                    borderColor: COLORS.line1,
-                    backgroundColor: COLORS.fill1,
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    fill: true,
-                    tension: 0.3
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1,
+                    barPercentage: 0.55
                 }]
             },
             options: opts
         });
     }
 
-    function renderRecoverySensitivity(canvasId, data) {
+    /* ─── 4. MTM vs Recovery Rate ─── */
+    // data: array of { recovery (%), mtm ($) }
+
+    function renderRecoveryMTM(canvasId, data) {
         var labels = data.map(function (d) { return d.recovery + '%'; });
-        var values = data.map(function (d) { return d.spread; });
-        var opts   = baseOpts('Spread vs Recovery Rate (bps)');
-        var bounds = pad(values, 0.10);
-        opts.scales.y.min = Math.max(0, bounds.min);
+        var values = data.map(function (d) { return +(d.mtm / 1000).toFixed(1); });
+        var opts   = baseOpts('MTM vs Recovery Rate ($K)');
+        var bounds = pad(values, 0.15);
+        opts.scales.y.min = bounds.min;
         opts.scales.y.max = bounds.max;
+        opts.scales.x.title = { display: true, text: 'Recovery Rate', color: '#999', font: FONT };
+        opts.scales.y.title = { display: true, text: '$K', color: '#999', font: FONT };
+        // zero line annotation via afterDraw plugin (lightweight)
+        opts.plugins.tooltip.callbacks = {
+            label: function (ctx) {
+                return ' $' + (ctx.parsed.y * 1000).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+        };
 
         getOrCreate(canvasId, {
             type: 'line',
@@ -155,10 +241,79 @@ var Charts = (function () {
         });
     }
 
+    /* ─── 5. Theta / Time Decay ─── */
+    // data: array of { label, pnl }  e.g. '1D', '1W', '1M'
+
+    function renderTheta(canvasId, data) {
+        var labels = data.map(function (d) { return d.label; });
+        var values = data.map(function (d) { return d.pnl; });
+        var colors = values.map(function (v) { return v >= 0 ? COLORS.barPos : COLORS.barNeg; });
+        var opts   = baseOpts('Theta — Time Decay ($)');
+        var bounds = pad(values, 0.25);
+        opts.scales.y.min = bounds.min;
+        opts.scales.y.max = bounds.max;
+        opts.plugins.tooltip.callbacks = {
+            label: function (ctx) {
+                return ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+        };
+
+        getOrCreate(canvasId, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1,
+                    barPercentage: 0.45
+                }]
+            },
+            options: opts
+        });
+    }
+
+    /* ─── 6. Jump-to-Default (JTD) ─── */
+    // data: { jtd, accruedPremium, lgd }  — shown as a waterfall-style 3-bar
+
+    function renderJTD(canvasId, data) {
+        var labels = ['LGD Receipt', 'Accrued Premium\n(paid)', 'Net JTD'];
+        var values = [data.lgd, -data.accruedPremium, data.jtd];
+        var colors = values.map(function (v) { return v >= 0 ? COLORS.barPos : COLORS.barNeg; });
+        var opts   = baseOpts('Jump-to-Default ($)');
+        var bounds = pad(values, 0.25);
+        opts.scales.y.min = bounds.min;
+        opts.scales.y.max = bounds.max;
+        opts.plugins.tooltip.callbacks = {
+            label: function (ctx) {
+                return ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+        };
+
+        getOrCreate(canvasId, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1,
+                    barPercentage: 0.45
+                }]
+            },
+            options: opts
+        });
+    }
+
     return {
-        renderTermStructure:      renderTermStructure,
         renderSurvivalCurve:      renderSurvivalCurve,
-        renderRecoverySensitivity: renderRecoverySensitivity
+        renderPnLSummary:         renderPnLSummary,
+        renderCS01:               renderCS01,
+        renderRecoveryMTM:        renderRecoveryMTM,
+        renderTheta:              renderTheta,
+        renderJTD:                renderJTD
     };
 
 })();

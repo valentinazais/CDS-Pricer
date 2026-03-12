@@ -111,24 +111,9 @@ var CDS = (function () {
 
     /* ---- chart data generators ---- */
 
-    /*
-     * Term structure: par spread at each tenor 1Y–10Y using the calibrated
-     * flat hazard rate. Under a flat h, the par spread is nearly constant
-     * across tenors (small variation from discounting effects).
-     */
-    function termStructure(spreadBps, recoveryRate, riskFreeRate, freq) {
-        var result = [];
-        for (var y = 1; y <= 10; y++) {
-            var h  = calibrateHazardRate(spreadBps, recoveryRate, riskFreeRate, y, freq);
-            var sp = fairSpread(h, recoveryRate, riskFreeRate, y, freq);
-            result.push({ year: y, spread: sp });
-        }
-        return result;
-    }
-
     function survivalCurve(h, maturity) {
         var pts   = [];
-        var steps = maturity * 4;
+        var steps = Math.max(maturity * 8, 40);
         for (var i = 0; i <= steps; i++) {
             var t = i * (maturity / steps);
             pts.push({ t: Math.round(t * 100) / 100, prob: surv(h, t) });
@@ -136,17 +121,92 @@ var CDS = (function () {
         return pts;
     }
 
-    function recoverySensitivity(spreadBps, recoveryRate, riskFreeRate, maturity, freq) {
-        // Fix hazard rate from user's inputs, then vary R to show par spread
-        var hFixed = calibrateHazardRate(spreadBps, recoveryRate, riskFreeRate, maturity, freq);
-        var result = [];
+    /*
+     * MTM vs Recovery: hold h fixed (calibrated from market spread),
+     * sweep R to show how MTM changes. Traders care about P&L impact.
+     */
+    function recoveryMTM(marketSpreadBps, contractualSpreadBps, recoveryRate, riskFreeRate, maturity, freq, notional) {
+        var hFixed  = calibrateHazardRate(marketSpreadBps, recoveryRate, riskFreeRate, maturity, freq);
+        var result  = [];
         for (var r = 10; r <= 80; r += 5) {
-            var rec = r / 100;
-            var L   = legs(hFixed, riskFreeRate, maturity, freq);
-            var sp  = ((1 - rec) * L.protUnit / L.annuity) * 10000;
-            result.push({ recovery: r, spread: sp });
+            var rec    = r / 100;
+            var protPV = notional * (1 - rec) * legs(hFixed, riskFreeRate, maturity, freq).protUnit;
+            var premPV = notional * (contractualSpreadBps / 10000) * legs(hFixed, riskFreeRate, maturity, freq).annuity;
+            result.push({ recovery: r, mtm: protPV - premPV });
         }
         return result;
+    }
+
+    /*
+     * CS01 ladder: dollar P&L change per +1 bp move in market spread,
+     * bucketed by tenor 1Y through maturity.
+     */
+    function cs01Ladder(marketSpreadBps, contractualSpreadBps, recoveryRate, riskFreeRate, maturity, freq, notional) {
+        var result = [];
+        var bump   = 1; // 1 bp
+        var years  = [];
+        for (var y = 1; y <= maturity; y++) years.push(y);
+
+        for (var i = 0; i < years.length; i++) {
+            var yr  = years[i];
+            var h0  = calibrateHazardRate(marketSpreadBps,        recoveryRate, riskFreeRate, yr, freq);
+            var hUp = calibrateHazardRate(marketSpreadBps + bump, recoveryRate, riskFreeRate, yr, freq);
+
+            var L0  = legs(h0,  riskFreeRate, yr, freq);
+            var LUp = legs(hUp, riskFreeRate, yr, freq);
+
+            var mtm0  = notional * ((1 - recoveryRate) * L0.protUnit  - (contractualSpreadBps / 10000) * L0.annuity);
+            var mtmUp = notional * ((1 - recoveryRate) * LUp.protUnit - (contractualSpreadBps / 10000) * LUp.annuity);
+
+            result.push({ tenor: yr + 'Y', cs01: mtmUp - mtm0 });
+        }
+        return result;
+    }
+
+    /*
+     * Theta / time decay: MTM change after passage of time,
+     * assuming spreads and h are unchanged (carry-and-roll simplified).
+     * Uses fractional maturity reduction.
+     */
+    function thetaDecay(marketSpreadBps, contractualSpreadBps, recoveryRate, riskFreeRate, maturity, freq, notional) {
+        var h       = calibrateHazardRate(marketSpreadBps, recoveryRate, riskFreeRate, maturity, freq);
+        var L0      = legs(h, riskFreeRate, maturity, freq);
+        var mtm0    = notional * ((1 - recoveryRate) * L0.protUnit - (contractualSpreadBps / 10000) * L0.annuity);
+        var periods = [1/365, 7/365, 1/12];
+        var labels  = ['1 Day', '1 Week', '1 Month'];
+        var result  = [];
+        for (var i = 0; i < periods.length; i++) {
+            var newMat = maturity - periods[i];
+            if (newMat <= 0) { result.push({ label: labels[i], pnl: -mtm0 }); continue; }
+            var hNew  = calibrateHazardRate(marketSpreadBps, recoveryRate, riskFreeRate, newMat, freq);
+            var LNew  = legs(hNew, riskFreeRate, newMat, freq);
+            var mtmNew = notional * ((1 - recoveryRate) * LNew.protUnit - (contractualSpreadBps / 10000) * LNew.annuity);
+            result.push({ label: labels[i], pnl: mtmNew - mtm0 });
+        }
+        return result;
+    }
+
+    /*
+     * Jump-to-Default: immediate P&L if credit defaults right now.
+     * For protection BUYER:
+     *   JTD = N×(1-R) - Accrued Premium
+     * Accrued premium = contractual_spread × N × (days since last coupon / 360)
+     * Approximated as half a coupon period.
+     */
+    function jumpToDefault(contractualSpreadBps, recoveryRate, riskFreeRate, maturity, freq, notional) {
+        var h           = calibrateHazardRate(contractualSpreadBps, recoveryRate, riskFreeRate, maturity, freq);
+        var n           = freqToN(freq);
+        var dt          = 1 / n;
+        // Accrued premium: half-period approximation
+        var accruedFrac = dt / 2;
+        var accrued     = (contractualSpreadBps / 10000) * notional * accruedFrac;
+        var lgdReceipt  = (1 - recoveryRate) * notional;
+        var jtd         = lgdReceipt - accrued;
+        return {
+            jtd:             jtd,
+            accruedPremium:  accrued,
+            lgd:             lgdReceipt
+        };
     }
 
     /* ---- public API ---- */
@@ -158,9 +218,11 @@ var CDS = (function () {
         protectionLegPV:     protectionLegPV,
         upfrontPayment:      upfrontPayment,
         fairSpread:          fairSpread,
-        termStructure:       termStructure,
         survivalCurve:       survivalCurve,
-        recoverySensitivity: recoverySensitivity
+        recoveryMTM:         recoveryMTM,
+        cs01Ladder:          cs01Ladder,
+        thetaDecay:          thetaDecay,
+        jumpToDefault:       jumpToDefault
     };
 
 })();

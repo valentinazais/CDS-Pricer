@@ -186,22 +186,39 @@ html, body {
     text-align: right;
 }
 
+.result-row--highlight {
+    background: #f6f6f6;
+    margin: 2px -14px;
+    padding: 5px 14px;
+}
+
+.result-row--highlight .label {
+    color: #555;
+    font-weight: 600;
+}
+
+.result-row--highlight .value {
+    font-size: 13px;
+}
+
 /* ---- right panel (charts) ---- */
 .panel-right {
     padding: 20px;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
     background: #ffffff;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 }
 
 .chart-box {
     background: #fafafa;
     border: 1px solid #e0e0e0;
     padding: 12px;
-    flex: 1;
-    min-height: 200px;
+    min-height: 220px;
     position: relative;
 }
 
@@ -222,6 +239,12 @@ html, body {
 }
 
 /* ---- responsive ---- */
+@media (max-width: 900px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .main {
         grid-template-columns: 1fr;

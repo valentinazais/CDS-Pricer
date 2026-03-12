@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CDS Pricer</title>
-    <meta name="description" content="Credit Default Swap pricer — spread, PV, survival curve, term structure">
+    <meta name="description" content="Credit Default Swap pricer — spread, PV, survival curve, CS01, theta, JTD">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -90,6 +90,14 @@
                 <span class="label">Upfront Payment</span>
                 <span class="value" id="res-upfront">—</span>
             </div>
+            <div class="result-row result-row--highlight">
+                <span class="label">CS01 ($ / bp)</span>
+                <span class="value" id="res-cs01">—</span>
+            </div>
+            <div class="result-row result-row--highlight">
+                <span class="label">Jump-to-Default</span>
+                <span class="value" id="res-jtd">—</span>
+            </div>
             <div class="result-row">
                 <span class="label">Hazard Rate</span>
                 <span class="value" id="res-hazard">—</span>
@@ -100,14 +108,25 @@
 
     <!-- RIGHT — charts -->
     <div class="panel-right">
-        <div class="chart-box">
-            <canvas id="chart-term"></canvas>
-        </div>
-        <div class="chart-box">
-            <canvas id="chart-survival"></canvas>
-        </div>
-        <div class="chart-box">
-            <canvas id="chart-recovery"></canvas>
+        <div class="charts-grid">
+            <div class="chart-box">
+                <canvas id="chart-survival"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="chart-pnl"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="chart-cs01"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="chart-recovery"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="chart-theta"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="chart-jtd"></canvas>
+            </div>
         </div>
     </div>
 
